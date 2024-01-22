@@ -29,12 +29,17 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustHaveSameLength();
     error DSCEngine__NotAllowedToken();
     error DSCEngine__TransferFailed();
+    error DSCEngine__BreaksHealthFactor(uint256 healthFactor);
+    error DSCEngine__MintFailed();
 
     ///////////////////////
     /// STATE VARIABLES ///
     ///////////////////////
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant RECISION = 1e18;
+    uint256 private constant LIQUIDATION_THRESHOLD = 50; // 200% overcollateralized
+    uint256 private constant LIQUIDATION_PRECISION = 100;
+    uint256 private constant MIN_HEALTH_FACTOR = 1;
 
     mapping(address token => address priceFeed) private s_priceFeeds;
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
@@ -115,6 +120,10 @@ contract DSCEngine is ReentrancyGuard {
     function mintDsc(uint256 amountDscToMint) external moreThanZero(amountDscToMint) nonReentrant {
         s_dscMinted[msg.sender] += amountDscToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
+        bool minted = i_dsc.mint(msg.sender, amountDscToMint);
+        if (!minted) {
+            revert DSCEngine__MintFailed();
+        }
     }
 
     function burnDsc() external {}
@@ -139,16 +148,21 @@ contract DSCEngine is ReentrancyGuard {
      * Returns how close to liquidation a user is.
      * If user goes below 1, they get liquidated
      */
-
     function _healthFactor(address user) private view returns (uint256) {
         // total DSC Minted
         // total collateral Value
-        (uint256 totalDscMinted, uint256 collateralValueUsd) = _getAccountInformation(user);
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+        uint256 collateralAdjustedForTreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+        return (collateralAdjustedForTreshold * LIQUIDATION_PRECISION) / totalDscMinted;
     }
 
+    // 1: Check Health Fact (enough collateral)
+    // 2: Otherwise revert
     function _revertIfHealthFactorIsBroken(address user) internal view {
-        // 1: Check Health Fact (enough collateral)
-        // 2: Otherwise revert
+        uint256 userHealthFactor = _healthFactor(user);
+        if (userHealthFactor < MIN_HEALTH_FACTOR) {
+            revert DSCEngine__BreaksHealthFactor(userHealthFactor);
+        }
     }
 
     ////////////////////////////////////////
