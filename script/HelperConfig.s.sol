@@ -7,6 +7,11 @@ import {DSCEngine} from "../src/DSCEngine.sol";
 import {MockV3Aggregator} from "../test/mocks/MockV3Aggregator.sol";
 import {ERC20Mock} from "../test/mocks/ERC20Mock.sol";
 
+/**
+ * @title HelperConfig
+ * @author paulsimroth
+ * @notice This is the Helper Configuration to set up the Deploy Script according to the network the contract gets deployed to
+ */
 contract HelperConfig is Script {
     struct NetworkConfig {
         address wethUsdPriceFeed;
