@@ -135,7 +135,6 @@ contract DSCEngineTest is Test {
         uint256 userBalance = ERC20Mock(weth).balanceOf(USER);
         assertEq(userBalance, AMOUNT_COLLATERAL);
         vm.stopPrank();
-        /// @todo [FAIL. Reason: panic: division or modulo by zero (0x12)]
     }
 
     ////////////////////////////////////////////
@@ -152,7 +151,6 @@ contract DSCEngineTest is Test {
 
         uint256 userBalance = dsc.balanceOf(USER);
         assertEq(userBalance, 0);
-        /// @todo [FAIL. Reason: panic: division or modulo by zero (0x12)]
     }
 
     ///////////////////////
@@ -181,6 +179,5 @@ contract DSCEngineTest is Test {
 
         uint256 userBalance = dsc.balanceOf(USER);
         assertEq(userBalance, 0);
-        /// @todo [FAIL. Reason: panic: division or modulo by zero (0x12)]
     }
 }

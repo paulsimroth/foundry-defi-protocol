@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
@@ -269,7 +269,11 @@ contract DSCEngine is ReentrancyGuard {
         // total DSC Minted
         // total collateral Value
         (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+
+        if (totalDscMinted == 0) return type(uint256).max;
+
         uint256 collateralAdjustedForTreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+
         return (collateralAdjustedForTreshold * PRECISION) / totalDscMinted;
     }
 
