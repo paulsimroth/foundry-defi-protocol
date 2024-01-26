@@ -27,7 +27,7 @@ contract DSCEngine is ReentrancyGuard {
     ///////////////////////
     error DSCEngine__NeedsValueMoreThanZero();
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustHaveSameLength();
-    error DSCEngine__NotAllowedToken();
+    error DSCEngine__NotAllowedToken(address token);
     error DSCEngine__TransferFailed();
     error DSCEngine__BreaksHealthFactor(uint256 healthFactor);
     error DSCEngine__MintFailed();
@@ -75,7 +75,7 @@ contract DSCEngine is ReentrancyGuard {
 
     modifier isAllowedToken(address token) {
         if (s_priceFeeds[token] == address(0)) {
-            revert DSCEngine__NotAllowedToken();
+            revert DSCEngine__NotAllowedToken(token);
         }
         _;
     }
@@ -232,6 +232,8 @@ contract DSCEngine is ReentrancyGuard {
     function _burnDsc(uint256 amountDscToBurn, address onBehalfOf, address dscFrom) private {
         s_dscMinted[onBehalfOf] -= amountDscToBurn;
         bool success = i_dsc.transferFrom(dscFrom, address(this), amountDscToBurn);
+
+        // Conditional is hypothetically unreachable
         if (!success) {
             revert DSCEngine__TransferFailed();
         }

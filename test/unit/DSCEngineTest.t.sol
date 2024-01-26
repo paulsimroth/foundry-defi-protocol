@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {DeployDSC} from "../../script/DeployDSC.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
@@ -28,8 +28,11 @@ contract DSCEngineTest is Test {
         deployer = new DeployDSC();
         (dsc, engine, config) = deployer.run();
         (ethUsdPriceFeed, btcUsdPriceFeed, weth, wbtc,) = config.activeNetworkConfig();
-
+        if (block.chainid == 31337) {
+            vm.deal(USER, STARTING_ERC20_BALANCE);
+        }
         ERC20Mock(weth).mint(USER, STARTING_ERC20_BALANCE);
+        ERC20Mock(wbtc).mint(USER, STARTING_ERC20_BALANCE);
     }
 
     ///////////////////////////
@@ -86,7 +89,7 @@ contract DSCEngineTest is Test {
     function testRevertWithUnapprovedCollateral() public {
         ERC20Mock ranToken = new ERC20Mock("RAN", "RAN", USER, AMOUNT_COLLATERAL);
         vm.startPrank(USER);
-        vm.expectRevert(DSCEngine.DSCEngine__NotAllowedToken.selector);
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__NotAllowedToken.selector, address(ranToken)));
         engine.depositCollateral(address(ranToken), AMOUNT_COLLATERAL);
         vm.stopPrank();
     }
@@ -135,5 +138,49 @@ contract DSCEngineTest is Test {
         /// @todo [FAIL. Reason: panic: division or modulo by zero (0x12)]
     }
 
-    /* function testRedeemCollateralForDsc() public depositedCollateral {} */
+    ////////////////////////////////////////////
+    //// REDEEM COLLATERAL FOR DSC TESTS ///////
+    ////////////////////////////////////////////
+
+    function testRedeemCollateralForDsc() public {
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(engine), AMOUNT_COLLATERAL);
+        engine.depositCollateralAndMintDsc(weth, AMOUNT_COLLATERAL, AMOUNT_DSC_TO_MINT);
+        dsc.approve(address(engine), AMOUNT_DSC_TO_MINT);
+        engine.redeemCollateralForDsc(weth, AMOUNT_COLLATERAL, AMOUNT_DSC_TO_MINT);
+        vm.stopPrank();
+
+        uint256 userBalance = dsc.balanceOf(USER);
+        assertEq(userBalance, 0);
+        /// @todo [FAIL. Reason: panic: division or modulo by zero (0x12)]
+    }
+
+    ///////////////////////
+    //// BURN TESTS ///////
+    ///////////////////////
+    function testRevertsIfBurnAmountIsZero() public {
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(engine), AMOUNT_COLLATERAL);
+        engine.depositCollateralAndMintDsc(weth, AMOUNT_COLLATERAL, AMOUNT_DSC_TO_MINT);
+        vm.expectRevert(DSCEngine.DSCEngine__NeedsValueMoreThanZero.selector);
+        engine.burnDsc(0);
+        vm.stopPrank();
+    }
+
+    function testCantBurnMoreThanUserHas() public {
+        vm.prank(USER);
+        vm.expectRevert();
+        engine.burnDsc(1);
+    }
+
+    function testCanBurnDsc() public depositedCollateralAndMintedDsc {
+        vm.startPrank(USER);
+        dsc.approve(address(engine), AMOUNT_DSC_TO_MINT);
+        engine.burnDsc(AMOUNT_DSC_TO_MINT);
+        vm.stopPrank();
+
+        uint256 userBalance = dsc.balanceOf(USER);
+        assertEq(userBalance, 0);
+        /// @todo [FAIL. Reason: panic: division or modulo by zero (0x12)]
+    }
 }
