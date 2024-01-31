@@ -13,22 +13,26 @@ import {StdInvariant} from "forge-std/StdInvariant.sol";
 import {DeployDSC} from "../../script/DeployDSC.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
+import {Handler} from "./Handler.t.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract OpenInvariantsTest is StdInvariant, Test {
-/*     DeployDSC deployer;
+contract InvariantsTest is StdInvariant, Test {
+    DeployDSC deployer;
     DSCEngine engine;
     DecentralizedStableCoin dsc;
     HelperConfig config;
     address weth;
     address wbtc;
 
+    Handler public handler;
+
     function setUp() external {
         deployer = new DeployDSC();
         (dsc, engine, config) = deployer.run();
         (,, weth, wbtc,) = config.activeNetworkConfig();
-        targetContract(address(engine));
+        handler = new Handler(engine, dsc);
+        targetContract(address(handler));
     }
 
     function invariant_protocolMustHaveMoreValueThanTotalSupply() public view {
@@ -45,5 +49,5 @@ contract OpenInvariantsTest is StdInvariant, Test {
         console.log("totalSupply", totalSupply);
 
         assert(wethValue + wbtcValue >= totalSupply);
-    } */
+    }
 }
