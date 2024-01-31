@@ -5,7 +5,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-
+import {OracleLib} from "./libraries/OracleLib.sol";
 /**
  * @title DSCEngine
  * @author paulsimroth
@@ -21,6 +21,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
  *
  * @notice Tis contract is the core of the DSC System. It handles all logic fo minting and redeeming DSC, aswell as depositing and drawing collateral.
  */
+
 contract DSCEngine is ReentrancyGuard {
     ///////////////////////
     /// ERRORS ////////////
@@ -35,8 +36,13 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__HealthFactorNotImproved();
 
     ///////////////////////
+    /// TYPES ////////////
+    ///////////////////////
+    using OracleLib for AggregatorV3Interface;
+    ///////////////////////
     /// STATE VARIABLES ///
     ///////////////////////
+
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant PRECISION = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 50; // 200% overcollateralized
@@ -300,7 +306,7 @@ contract DSCEngine is ReentrancyGuard {
 
     function getUsdValue(address token, uint256 amount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
 
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
@@ -308,7 +314,7 @@ contract DSCEngine is ReentrancyGuard {
     function getTokenAmountFromUsd(address collateralToken, uint256 usdAmountInWei) public view returns (uint256) {
         // price of ETH
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[collateralToken]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
         // Example: ($10e18 * 1e18) / ($2000e8 * 1e10) == 0.05 ETH
         return ((usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION));
     }
