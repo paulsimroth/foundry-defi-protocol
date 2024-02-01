@@ -4,9 +4,16 @@
 
 This is a project built with Foundry.
 This project is meant to be a stablecoin where users can deposit WETH and WBTC in exchange for a token that will be pegged to the USD.
-
 The main Contract is called DSCEngine.sol and it severves as the execution protocol of this project. Included is the DecentralizedStableCoin, which is a burnable ERC20 Token.
 
+This system is designed to be as minimal as possible and have the Token maintain a peg of 1 Token == 1 US$
+ 
+  This stablecoin has the properties:
+  - Exogenous collateral
+  - US Dollar pegging
+  - Stabilization Algorithm
+
+This system should always be over collateralized. At no point should the value of all collateral <= US$ backed value of all DSC
 
 ## Summary
 
